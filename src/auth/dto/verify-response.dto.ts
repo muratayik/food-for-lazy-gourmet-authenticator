@@ -1,5 +1,8 @@
+import { UserRole } from '../user-role.enum';
+
 export class VerifyResponseDto {
-  isSuccess: boolean;
+  id: string;
   email: string;
   username: string;
+  role?: UserRole;
 }

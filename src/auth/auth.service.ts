@@ -7,6 +7,8 @@ import * as bcrypt from 'bcrypt';
 import { JwtPayload } from './jwt-payload.interface';
 import { JwtService } from '@nestjs/jwt';
 import { VerifyResponseDto } from './dto/verify-response.dto';
+import { ConfigService } from '@nestjs/config';
+import { extractRolesFromAdminString } from 'src/utils';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +16,7 @@ export class AuthService {
     @InjectRepository(UsersRepository)
     private usersRepository: UsersRepository,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   signUp = (createUserDto: CreateUserDto): Promise<void> =>
@@ -24,7 +27,7 @@ export class AuthService {
     const user = await this.usersRepository.findOne({ email });
 
     if (user && (await bcrypt.compare(password, user.password))) {
-      const payload: JwtPayload = { email };
+      const payload: JwtPayload = { id: user.id };
       const accessToken = this.jwtService.sign(payload);
       return { accessToken };
     } else {
@@ -34,18 +37,18 @@ export class AuthService {
 
   verify = async (jwtToken: string): Promise<VerifyResponseDto> => {
     try {
-      const { email }: { email: string } = await this.jwtService.verify(
-        jwtToken,
+      const { id }: { id: string } = await this.jwtService.verify(jwtToken);
+      const { email, username } = await this.usersRepository.findOne({
+        id,
+      });
+
+      const role = extractRolesFromAdminString(
+        this.configService.get('ADMIN_USERS'),
+        email,
       );
-      const { username } = await this.usersRepository.findOne({ email });
-      return { isSuccess: true, email, username: username };
+
+      return { email, id, role, username };
     } catch (error) {
-      if (
-        error.message === 'invalid signature' ||
-        error.message === 'jwt expired'
-      ) {
-        return { isSuccess: false, email: '', username: '' };
-      }
       throw new UnauthorizedException(error);
     }
   };
