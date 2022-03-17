@@ -6,7 +6,6 @@ import { UsersRepository } from './users.repository';
 import * as bcrypt from 'bcrypt';
 import { JwtPayload } from './jwt-payload.interface';
 import { JwtService } from '@nestjs/jwt';
-import { VerifyResponseDto } from './dto/verify-response.dto';
 import { ConfigService } from '@nestjs/config';
 import { extractRolesFromAdminString } from 'src/utils';
 
@@ -27,29 +26,18 @@ export class AuthService {
     const user = await this.usersRepository.findOne({ email });
 
     if (user && (await bcrypt.compare(password, user.password))) {
-      const payload: JwtPayload = { id: user.id };
-      const accessToken = this.jwtService.sign(payload);
-      return { accessToken };
-    } else {
-      throw new UnauthorizedException('Please check your login credentials');
-    }
-  };
-
-  verify = async (jwtToken: string): Promise<VerifyResponseDto> => {
-    try {
-      const { id }: { id: string } = await this.jwtService.verify(jwtToken);
-      const { email, username } = await this.usersRepository.findOne({
-        id,
-      });
+      const { email, id, username } = user;
 
       const role = extractRolesFromAdminString(
         this.configService.get('ADMIN_USERS'),
         email,
       );
 
-      return { email, id, role, username };
-    } catch (error) {
-      throw new UnauthorizedException(error);
+      const payload: JwtPayload = { email, id, role, username };
+      const accessToken = this.jwtService.sign(payload);
+      return { accessToken };
+    } else {
+      throw new UnauthorizedException('Please check your login credentials');
     }
   };
 }
