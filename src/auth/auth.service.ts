@@ -8,6 +8,7 @@ import { JwtPayload } from './jwt-payload.interface';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { extractRolesFromAdminString } from 'src/utils';
+import { VerifyResponseDto } from './dto/verify-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -38,6 +39,24 @@ export class AuthService {
       return { accessToken };
     } else {
       throw new UnauthorizedException('Please check your login credentials');
+    }
+  };
+
+  verify = async (jwtToken: string): Promise<VerifyResponseDto> => {
+    try {
+      const { id }: { id: string } = await this.jwtService.verify(jwtToken);
+      const { email, username } = await this.usersRepository.findOne({
+        id,
+      });
+
+      const role = extractRolesFromAdminString(
+        this.configService.get('ADMIN_USERS'),
+        email,
+      );
+
+      return { email, id, role, username };
+    } catch (error) {
+      throw new UnauthorizedException(error);
     }
   };
 }

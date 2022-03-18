@@ -25,7 +25,6 @@ export class UsersRepository extends Repository<User> {
       if (error.code === postgreSqlDuplicateColumnErrorCode) {
         throw new ConflictException('Email already exists');
       } else {
-        console.log(error);
         throw new InternalServerErrorException();
       }
     }

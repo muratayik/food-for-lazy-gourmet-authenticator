@@ -1,11 +1,17 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { SignInDto } from './dto/sign-in.dto';
+import { VerifyResponseDto } from './dto/verify-response.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
+
+  @Get('/:jwtToken')
+  verify(@Param('jwtToken') jwtToken: string): Promise<VerifyResponseDto> {
+    return this.authService.verify(jwtToken);
+  }
 
   @Post('/signup')
   signUp(@Body() createUserDto: CreateUserDto): Promise<void> {
